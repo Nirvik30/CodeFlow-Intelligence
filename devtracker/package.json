@@ -1,0 +1,147 @@
+{
+  "name": "devtracker",
+  "displayName": "Developer Activity Tracker",
+  "description": "Ethically tracks developer activity for personal productivity insights",
+  "version": "0.1.0",
+  "publisher": "codeflow",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "productivity",
+    "tracking",
+    "analytics",
+    "developer",
+    "activity"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "devActivityTracker.showStats",
+        "title": "Show Activity Statistics",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "devActivityTracker.exportData",
+        "title": "Export Activity Data",
+        "icon": "$(export)"
+      },
+      {
+        "command": "devActivityTracker.clearData",
+        "title": "Clear Activity Data",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "devActivityTracker.toggleTracking",
+        "title": "Toggle Activity Tracking",
+        "icon": "$(record)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "devActivityTracker.showStats"
+        },
+        {
+          "command": "devActivityTracker.exportData"
+        },
+        {
+          "command": "devActivityTracker.clearData"
+        },
+        {
+          "command": "devActivityTracker.toggleTracking"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "devActivityTracker.showStats",
+          "when": "view == devActivityTracker.activityView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "devActivityTracker.activityView",
+          "name": "Activity Tracker",
+          "when": "devActivityTracker.enabled"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Developer Activity Tracker",
+      "properties": {
+        "devActivityTracker.enableTracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable activity tracking",
+          "scope": "window"
+        },
+        "devActivityTracker.trackFileContent": {
+          "type": "boolean",
+          "default": false,
+          "description": "Track file content changes (may impact privacy)",
+          "scope": "window"
+        },
+        "devActivityTracker.dataRetentionDays": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Number of days to retain activity data",
+          "scope": "window"
+        },
+        "devActivityTracker.enableNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show productivity notifications",
+          "scope": "window"
+        },
+        "devActivityTracker.exportFormat": {
+          "type": "string",
+          "enum": [
+            "json",
+            "csv"
+          ],
+          "default": "json",
+          "description": "Default export format for activity data",
+          "scope": "window"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.95.0",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.0.0",
+    "eslint": "^9.34.0",
+    "typescript": "^5.9.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/devtracker.git"
+  },
+  "license": "MIT"
+}
