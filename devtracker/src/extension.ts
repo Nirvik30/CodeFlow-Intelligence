@@ -2,10 +2,12 @@ import * as vscode from 'vscode';
 import { DataManager } from './dataManager';
 import { ActivityTracker } from './activityTracker';
 import { StatsViewProvider } from './statsViewProvider';
+import { ApiClient } from './apiClient';
 
 let dataManager: DataManager;
 let activityTracker: ActivityTracker;
 let statsViewProvider: StatsViewProvider;
+let apiClient: ApiClient;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('🚀 Developer Activity Tracker activated');
@@ -14,6 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
   dataManager = new DataManager(context);
   activityTracker = new ActivityTracker(context, dataManager);
   statsViewProvider = new StatsViewProvider(context, dataManager);
+  apiClient = new ApiClient(context);
 
   // Set context for views
   vscode.commands.executeCommand('setContext', 'devActivityTracker.enabled', true);
@@ -35,6 +38,10 @@ export function activate(context: vscode.ExtensionContext) {
     await toggleTracking();
   });
 
+  const syncCommand = vscode.commands.registerCommand('devActivityTracker.syncWithCodeFlow', async () => {
+    await syncWithCodeFlow();
+  });
+
   // Register webview provider
   const statsWebviewProvider = vscode.window.registerWebviewViewProvider(
     'devActivityTracker.activityView',
@@ -54,7 +61,8 @@ export function activate(context: vscode.ExtensionContext) {
     exportDataCommand,
     clearDataCommand,
     toggleTrackingCommand,
-    statsWebviewProvider
+    statsWebviewProvider,
+    syncCommand
   );
 
   // Show welcome notification
@@ -547,6 +555,41 @@ async function toggleTracking() {
     : '⏸️ Activity tracking disabled';
     
   vscode.window.showInformationMessage(message);
+}
+
+async function syncWithCodeFlow() {
+  try {
+    const isConnected = await apiClient.testConnection();
+    
+    if (!isConnected) {
+      const authToken = await vscode.window.showInputBox({
+        prompt: 'Enter your CodeFlow session token',
+        password: true,
+        ignoreFocusOut: true,
+        placeHolder: 'Paste session token here'
+      });
+      
+      if (!authToken) {
+        vscode.window.showErrorMessage('Authentication cancelled');
+        return;
+      }
+      
+      apiClient.setSessionToken(authToken);
+    }
+    
+    const config = vscode.workspace.getConfiguration('devActivityTracker');
+    await config.update('enableSync', true, vscode.ConfigurationTarget.Global);
+    
+    const result = await dataManager.syncDataWithAPI();
+    
+    if (result.success) {
+      vscode.window.showInformationMessage('Successfully synced with CodeFlow!');
+    } else {
+      vscode.window.showErrorMessage(`Sync failed: ${result.error || 'Unknown error'}`);
+    }
+  } catch (error) {
+    vscode.window.showErrorMessage(`Sync error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 function scheduleProductivityNotifications() {

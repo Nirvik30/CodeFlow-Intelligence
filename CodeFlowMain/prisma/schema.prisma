@@ -18,6 +18,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  activityEvents ActivityEvent[]
+  activitySessions ActivitySession[]
 
   @@map("users")
 }
@@ -66,4 +68,45 @@ model Verification {
 
   @@unique([identifier, value])
   @@map("verifications")
+}
+
+// Activity Tracking Models
+model ActivityEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique // Original ID from extension
+  timestamp   DateTime
+  type        String
+  data        Json
+  workspaceId String?
+  projectName String?
+  sessionId   String
+  userId      String
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+  session     ActivitySession @relation(references: [sessionId], fields: [sessionId], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([type, timestamp])
+  @@map("activity_events")
+}
+
+model ActivitySession {
+  id          String   @id @default(cuid())
+  sessionId   String   @unique // Original session ID from extension
+  startTime   DateTime
+  endTime     DateTime?
+  workspaceId String?
+  projectName String?
+  totalEvents Int      @default(0)
+  activeTime  Int      @default(0) // in milliseconds
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+  events      ActivityEvent[]
+
+  @@index([userId, startTime])
+  @@map("activity_sessions")
 }

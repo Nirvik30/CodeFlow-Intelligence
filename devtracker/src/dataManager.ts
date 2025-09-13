@@ -10,6 +10,7 @@ import {
   BaseActivityData,
   ActivityData
 } from './types';
+import { ApiClient } from './apiClient';
 
 export class DataManager {
   private storageUri: vscode.Uri;
@@ -19,11 +20,15 @@ export class DataManager {
   private currentSession: SessionData | null = null;
   private readonly maxEvents = 50000;
   private saveTimer: NodeJS.Timeout | null = null;
+  private apiClient: ApiClient;
+  private syncTimer: NodeJS.Timeout | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
     this.storageUri = vscode.Uri.joinPath(context.globalStorageUri, 'activity-data.json');
     this.sessionsUri = vscode.Uri.joinPath(context.globalStorageUri, 'sessions-data.json');
     this.initializeStorage();
+    this.apiClient = new ApiClient(context);
+    this.setupPeriodicSync();
   }
 
   // Type guard functions
@@ -566,10 +571,65 @@ export class DataManager {
     }
   }
 
+  private setupPeriodicSync(): void {
+    // Sync every 5 minutes
+    const syncInterval = 5 * 60 * 1000;
+    
+    this.syncTimer = setInterval(() => {
+      const config = vscode.workspace.getConfiguration('devActivityTracker');
+      const syncEnabled = config.get<boolean>('enableSync', false);
+      
+      if (syncEnabled) {
+        this.syncDataWithAPI();
+      }
+    }, syncInterval);
+  }
+
+  public async syncDataWithAPI(): Promise<any> {
+    try {
+      const config = vscode.workspace.getConfiguration('devActivityTracker');
+      const syncEnabled = config.get<boolean>('enableSync', false);
+      
+      if (!syncEnabled) {
+        return { success: false, message: 'Sync not enabled' };
+      }
+      
+      // Get events and sessions since last sync
+      const lastSyncTime = this.context.globalState.get<number>('lastSyncTime', 0);
+      const eventsToSync = this.events.filter(e => e.timestamp > lastSyncTime);
+      const sessionsToSync = this.sessions.filter(s => s.startTime > lastSyncTime);
+      
+      // If no new data to sync, skip
+      if (eventsToSync.length === 0 && sessionsToSync.length === 0) {
+        return { success: true, message: 'No new data to sync' };
+      }
+      
+      // Sync with API
+      const result = await this.apiClient.syncActivityData(eventsToSync, sessionsToSync);
+      
+      // Update last sync time on success
+      if (result.success) {
+        this.context.globalState.update('lastSyncTime', Date.now());
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to sync data with API:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
   public dispose(): void {
     this.endCurrentSession();
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
+    }
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
     }
     this.saveData();
   }

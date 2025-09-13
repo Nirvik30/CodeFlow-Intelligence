@@ -114,6 +114,18 @@
           "default": "json",
           "description": "Default export format for activity data",
           "scope": "window"
+        },
+        "devActivityTracker.enableSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable syncing activity data with CodeFlow",
+          "scope": "window"
+        },
+        "devActivityTracker.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:3000/api",
+          "description": "API URL for CodeFlow integration",
+          "scope": "window"
         }
       }
     }
@@ -138,6 +150,9 @@
     "@vscode/vsce": "^3.0.0",
     "eslint": "^9.34.0",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
   },
   "repository": {
     "type": "git",
