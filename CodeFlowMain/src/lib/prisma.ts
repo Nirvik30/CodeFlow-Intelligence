@@ -11,20 +11,22 @@ const connectionString = process.env.DATABASE_URL;
 
 // Type augmentation for the global object (TypeScript)
 declare global {
-  // Use PrismaClient with Neon adapter, so type hasn't changed
   var prisma: PrismaClient | undefined;
 }
 
-// Adapter instance for Neon
-const adapter = new PrismaNeon({ connectionString });
-
 // Create/reuse Prisma Client singleton
-export const prisma = globalThis.prisma ?? new PrismaClient({ adapter });
+export const prisma = globalThis.prisma ||
+  new PrismaClient({
+    // Only use adapter when using Neon, otherwise use standard connection
+    ...(connectionString?.includes('neon') ? {
+      adapter: new PrismaNeon({ connectionString })
+    } : {})
+  });
 
 // Store instance in global in dev
 if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
 
-// (Optional) Helper functions, as in your sample
+// Helper functions
 export async function disconnectPrisma() {
   await prisma.$disconnect();
 }
